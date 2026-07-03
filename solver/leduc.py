@@ -11,8 +11,8 @@ Hand ranking: pair > high card; tie-break by rank (J < Q < K)
   pair = private card rank matches board card rank
 """
 
-RANKS  = ['J', 'Q', 'K']
-DECK   = [f'{r}{s}' for r in RANKS for s in ('s', 'h')]  # Js Jh Qs Qh Ks Kh
+RANKS  = ['T', 'J', 'Q', 'K', 'A']
+DECK   = [f'{r}{s}' for r in RANKS for s in ('s', 'h')]  # Ts Th Js Jh Qs Qh Ks Kh As Ah
 ACTIONS     = ['p', 'b']
 NUM_ACTIONS = 2
 
