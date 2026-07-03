@@ -1,7 +1,7 @@
 # Poker GTO Solver — NUS MComp Capstone
 # 扑克 GTO 求解器 — NUS 计算机硕士毕业项目
 
-> **Last updated:** 2026-07-02 (Phase 1 — Kuhn Poker CFR)
+> **Last updated:** 2026-07-03 (Phase 4 — Safe Exploitation Framework)
 > **Stack:** Python · numpy · matplotlib
 > **GitHub:** https://github.com/YouLi128/poker-gto
 
@@ -20,14 +20,46 @@
 | Phase | Content | Status |
 |-------|---------|--------|
 | **1** | Kuhn Poker — Vanilla CFR · convergence to Nash · verify -1/18 game value | ✅ Done |
-| **2** | Leduc Hold'em — larger game tree · card abstraction intro | 🔜 Next |
-| **3** | Opponent modelling — detect deviation from Nash · classify opponent type | |
-| **4** | Safe Exploitation — adaptive strategy switching · theoretical guarantees | |
-| **5** | Simplified NLHE — bet abstraction · heads-up evaluation | |
+| **2** | Leduc Hold'em — two-round game · chance node · 384 info sets | ✅ Done |
+| **3** | Opponent Modelling — track deviation from Nash · classify opponent type · best response | ✅ Done |
+| **4** | Safe Exploitation — adaptive α · theoretical guarantee · exploitability bound | ✅ Done |
+| **5** | Simplified NLHE — bet abstraction · heads-up evaluation | 🔜 Next |
 
 ---
 
 ## Progress Log / 进度记录
+
+### 2026-07-03 — Safe Exploitation Framework Complete (Phase 4)
+
+**EN:** Formalised the exploitation-safety trade-off as a linear interpolation between Nash and best response: σ_SE(α) = (1−α)·σ\* + α·σ_BR. Proved and verified empirically that Exploitability(σ_SE(α)) ≤ α × Exploitability(σ_BR). Implemented adaptive α selection: α\* = min(ε_budget / exploit_mag, δ·√n / k), which scales exploitation aggressively only when (a) the opponent's deviation δ is large, (b) enough hands n have been observed, and (c) the safety budget ε allows it. The √n term mirrors UCB from bandit theory. Key results across three opponent types: Nit has the largest exploitable gap (GTO +0.535 → BR +1.266) but the highest BR exploitability (0.97), so the safety constraint caps α at ~0.10. Calling Station is already near-optimal under GTO (gap only +0.012). The framework correctly selects aggressive α for low-risk BRs and conservative α for high-risk ones.
+
+**中文:** 将剥削-安全权衡形式化为纳什策略与最优响应的线性插值：σ_SE(α) = (1−α)·σ\* + α·σ_BR。理论证明并实验验证：Exploitability(σ_SE(α)) ≤ α × Exploitability(σ_BR)。自适应 α 选择公式：α\* = min(ε_budget / exploit_mag, δ·√n / k)，仅在对手偏差 δ 显著、观测样本 n 充分且安全预算允许时才激进剥削。√n 项类比 Bandit 理论中的 UCB。关键结论：Nit（过折型）剥削空间最大但 BR 可被剥削量高（0.97），安全约束将 α 限制在 ~0.10；Calling Station 在 GTO 下已接近最优，剥削收益仅 +0.012。
+
+**Key results / 核心结果:**
+
+| Opponent | GTO EV | BR EV | Exploit(BR) | Safe α ceiling |
+|----------|--------|-------|-------------|----------------|
+| Nit | +0.535 | +1.266 | 0.969 | ~0.10 |
+| Calling Station | +1.292 | +1.304 | 0.204 | ~0.49 |
+| Maniac | +1.185 | +1.241 | 0.207 | ~0.48 |
+
+---
+
+### 2026-07-03 — Opponent Modelling Complete (Phase 3)
+
+**EN:** Implemented opponent action tracking at each observable position (R1/R2 open, R1/R2 facing a bet). OpponentModel computes the L1 deviation between observed action frequencies and Nash equilibrium strategies. Four scripted opponent types implemented: GTO (baseline), Calling Station (fold prob ×0.25), Nit (bet prob ×0.25), Maniac (bet prob pushed to 0.90). Best response computed via one-sided CFR: P1 strategy is frozen, only P0 updates via regret matching. Nash fallback ensures unvisited info sets don't default to random. Key finding: against Nit, exploit strategy achieves +0.884 EV vs +0.535 GTO (+65%), approaching BR ceiling +1.266. Against GTO opponents, exploit strategy correctly degrades (deviating from Nash is harmful).
+
+**中文:** 在每个可观测位置（R1/R2 主动下注、R1/R2 面对下注）追踪对手动作频率。OpponentModel 计算观测频率与纳什均衡策略之间的 L1 偏差。实现四种对手类型：GTO 基线、Calling Station（弃牌概率 ×0.25）、Nit（下注概率 ×0.25）、Maniac（下注概率推至 0.90）。最优响应通过单侧 CFR 计算：P1 策略冻结，仅 P0 通过遗憾匹配更新。未访问信息集回退到纳什策略。关键发现：对 Nit 对手，剥削策略达到 +0.884 EV，高于 GTO 的 +0.535（提升 65%），接近 BR 上限 +1.266。
+
+---
+
+### 2026-07-02 — Leduc Hold'em CFR Complete (Phase 2)
+
+**EN:** Extended CFR to Leduc Hold'em: 6-card deck (Js Jh Qs Qh Ks Kh), two betting rounds (bet sizes 2 and 4), community card dealt between rounds as a chance node. Hand ranking: pair (private rank = board rank) > high card; tie-break by rank. CFR traversal handles chance nodes by averaging over all 4 remaining board cards uniformly. Training iterates over all 30 ordered (P0, P1) private card pairs. Game converges to EV ~+0.070 with 384 information sets — 32× more than Kuhn, demonstrating the exponential growth of game tree complexity with each added feature.
+
+**中文:** 将 CFR 扩展到 Leduc Hold'em：6 张牌（每种花色两张），两轮下注（下注额 2 和 4 筹码），两轮之间发一张公共牌（机会节点）。牌力排名：对子（私牌点数 = 公共牌点数）> 散牌，同级别按点数大小比较。CFR 遍历在机会节点对 4 张剩余公共牌均匀取平均。训练循环遍历全部 30 种有序 (P0, P1) 私牌组合。博弈收敛到 EV ~+0.070，共发现 384 个信息集——是 Kuhn Poker 的 32 倍，直观展示博弈树随特性增加的指数增长。
+
+---
 
 ### 2026-07-02 — Kuhn Poker CFR Complete (Phase 1)
 
