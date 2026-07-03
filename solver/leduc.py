@@ -12,7 +12,7 @@ Hand ranking: pair > high card; tie-break by rank (J < Q < K)
 """
 
 RANKS  = ['T', 'J', 'Q', 'K', 'A']
-DECK   = [f'{r}{s}' for r in RANKS for s in ('s', 'h')]  # Ts Th Js Jh Qs Qh Ks Kh As Ah
+DECK   = [f'{r}{s}' for r in RANKS for s in ('s', 'h', 'd', 'c')]  # 20 cards: T/J/Q/K/A × 4 suits
 ACTIONS     = ['p', 'b']
 NUM_ACTIONS = 2
 
